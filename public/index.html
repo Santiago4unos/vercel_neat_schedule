@@ -11,7 +11,7 @@
         document.addEventListener("DOMContentLoaded", () => {
             const fileInput = document.getElementById("pdf-file");
             const fileInfo = document.getElementById("file-info");
-            const classCodeRegex = /[A-Z]{3}-\d{4}[A-Z]/;
+            const classCodeRegex = /[A-Z]{3}-\d{4}[A-Z]?/;
             const hoursRegex = /(?:\d{1,2})?(?:[01]\d|2[0-2]):[0-5]\d:[0-5]\d (?:[01]\d|2[0-2]):[0-5]\d:[0-5]\d/g;
             const classroomRegex = /[A-F]\d{1,2}/; 
             const colorList = ["#a1f7da", "#ffde59", "#ed615c", "#36ad93", "#00bf63", "#38b6ff", "#ff4757", "#ff66c4", "#8c52ff", "#ff914d", "#7bed9f"];
@@ -315,15 +315,19 @@
                     for (const line of column) {
                         const [lineText, xCoords, yCoords, width, regex] = Object.values(line);
                         if (previousLine) {
-                            if (previousLine.text.match(classCodeRegex)) {
+                            if (previousLine.text.match(classCodeRegex) && !line.text.match(classCodeRegex)) {
                                 const subject = previousLine.text.split("-")[2].trim();
                                 const separatedLine = lineText.split("-");
-    
+                                
+                                
                                 if (separatedLine.length > 1) {
                                     const completeSubjectName = `${subject} ${separatedLine[0].trim()}`;
                                     subjectsData[completeSubjectName] = subjectsData[subject];
                                     delete subjectsData[subject];
-    
+                                    
+                                    if (Math.abs(yCoords - previousLine) > 6) {
+                                        continue;
+                                    }
                                     subjectsData[completeSubjectName]["subject"] = completeSubjectName;
                                     subjectsData[completeSubjectName]["teacher"] = separatedLine[1].trim();
                                 } else {
@@ -361,7 +365,7 @@
                                 "teacher": teacher.trim(),
                                 "subjectCode": `${subjectCodePart1}-${subjectCodePart2.trim()}`,
                                 "color": color,
-                                "yRange": [yCoords - 7, yCoords + 7]
+                                "yRange": [yCoords - 8, yCoords + 8]
                             };
                         }
                         // For classes that don't have a class code (Why don't they just have one, man)
@@ -375,7 +379,7 @@
                                 "subject": subject.trim(),
                                 "teacher": teacher.trim(),
                                 "color": color,
-                                "yRange": [yCoords - 7, yCoords + 7]
+                                "yRange": [yCoords - 8, yCoords + 8]
                             };
                         }
                         else if (weekDays.includes(`${lineText[0].toUpperCase()}${lineText.substring(1)}`)) {
@@ -402,6 +406,11 @@
                                 currentDay = weekDays[previousDayIndex + 1];
                             }
 
+                            // console.log(subject)
+                            // console.log(hours)
+                            // console.log(classroom)
+                            // console.log(subjectsData)
+                            // console.log(yCoords)
                             scheduleDataList[currentDay][hours] = {
                                 "hours": hours,
                                 "subject": subject["subject"],
@@ -454,7 +463,7 @@
 
                         // hourDiv.setAttribute("class", "clickable");
                         const startHour = Number(scheduledClass.hours.substring(0, 2));
-                        const rowNum = startHour - 5;
+                        const rowNum = startHour - 6;
                         dayColumns[dayNum].children[rowNum].appendChild(hourDiv);
                         const subjectInfo = subjectsData[subject];
                         hourDiv.addEventListener("click", (e) => {
@@ -717,23 +726,21 @@
         <div id="schedule">
             <div class="hour-column">
                 <span>Hora</span>
-                <div>6:00</div>
-                <div>7:00</div>
-                <div>8:00</div>
-                <div>9:00</div>
-                <div>10:00</div>
-                <div>11:00</div>
-                <div>12:00</div>
-                <div>13:00</div>
-                <div>14:00</div>
-                <div>15:00</div>
-                <div>16:00</div>
-                <div>17:00</div>
-                <div>18:00</div>
-                <div>19:00</div>
-                <div>20:00</div>
-                <div>21:00</div>
-                <div>22:00</div>
+                <div>7:00-8:00</div>
+                <div>8:00-9:00</div>
+                <div>9:00-10:00</div>
+                <div>10:00-11:00</div>
+                <div>11:00-12:00</div>
+                <div>12:00-13:00</div>
+                <div>13:00-14:00</div>
+                <div>14:00-15:00</div>
+                <div>15:00-16:00</div>
+                <div>16:00-17:00</div>
+                <div>17:00-18:00</div>
+                <div>18:00-19:00</div>
+                <div>19:00-20:00</div>
+                <div>20:00-21:00</div>
+                <div>21:00-22:00</div>
             </div>
             <div class="column">
                 <span>Lunes</span>

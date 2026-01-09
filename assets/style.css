@@ -86,7 +86,7 @@ input[type="file"] {
 
 #schedule {
     display: grid;
-    grid-template-columns: 0.3fr repeat(6, 1fr);
+    grid-template-columns: 0.4fr repeat(6, 1fr);
     justify-content: center;
     background-color: rgb(175, 175, 175);
     grid-template-rows: repeat(18, minmax(70px, 70px));
