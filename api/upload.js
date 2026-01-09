@@ -1,6 +1,8 @@
-const formidable = require('formidable');
-const pdfParse = require('pdf-parse');
-const fs = require('fs');
+import formidable from 'formidable';
+import fs from 'fs';
+
+// Vercel serverless functions need to use dynamic imports for pdfjs-dist
+let pdfjs;
 
 export const config = {
   api: {
@@ -8,7 +10,61 @@ export const config = {
   },
 };
 
+async function extractWithPositions(pdfBuffer) {
+  // Lazy load pdfjs-dist
+  if (!pdfjs) {
+    pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    // Set up worker for Vercel environment
+    pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  }
+  
+  const uint8Array = new Uint8Array(pdfBuffer);
+  const pdf = await pdfjs.getDocument({
+    data: uint8Array,
+    disableFontFace: false
+  }).promise;
+  
+  const page = await pdf.getPage(1);
+  const textContent = await page.getTextContent();
+  
+  const items = textContent.items.map(item => ({
+    text: item.str,
+    x: item.transform[4],
+    y: item.transform[5],
+    width: item.width,
+    height: item.height
+  }));
+  
+  const columns = groupByColumn(items);
+  return columns;
+}
+
+function groupByColumn(items, tolerance = 40) {
+  const columns = {};
+  
+  items.forEach(item => {
+    const columnKey = Math.round(item.x / tolerance) * tolerance;
+    if (item.text !== "" && item.text !== " ") {
+      if (!columns[columnKey]) {
+        columns[columnKey] = [];
+      }
+      columns[columnKey].push(item);
+    }
+  });
+  
+  return columns;
+}
+
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -32,47 +88,20 @@ export default async function handler(req, res) {
     }
 
     const dataBuffer = fs.readFileSync(pdfFile.filepath);
-    const pdfData = await pdfParse(dataBuffer);
     
-    // Extract text content with positioning
-    const textContent = pdfData.text;
-    
-    // Parse the PDF structure similar to your backend
-    const parsedData = parsePDFContent(pdfData);
+    // Extract data with positions using pdfjs
+    const data = await extractWithPositions(dataBuffer);
     
     // Clean up temp file
     fs.unlinkSync(pdfFile.filepath);
     
-    return res.status(200).json(parsedData);
+    return res.status(200).json(data);
     
   } catch (error) {
     console.error('Error processing PDF:', error);
-    return res.status(500).json({ error: 'Failed to process PDF', details: error.message });
+    return res.status(500).json({ 
+      error: 'Failed to process PDF', 
+      details: error.message 
+    });
   }
-}
-
-function parsePDFContent(pdfData) {
-  // This function needs to be adapted based on your backend's actual parsing logic
-  // Since I don't have your backend code, here's a basic structure
-  
-  const lines = pdfData.text.split('\n');
-  const result = {};
-  
-  lines.forEach((line, index) => {
-    if (line.trim()) {
-      if (!result[`column_${Math.floor(index / 10)}`]) {
-        result[`column_${Math.floor(index / 10)}`] = [];
-      }
-      
-      result[`column_${Math.floor(index / 10)}`].push({
-        text: line.trim(),
-        x: 0, // You'll need actual coordinates from your backend
-        y: index * 10,
-        width: line.length * 7,
-        regex: null
-      });
-    }
-  });
-  
-  return result;
 }
