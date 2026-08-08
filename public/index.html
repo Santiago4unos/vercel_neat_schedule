@@ -396,7 +396,7 @@
                             yCoords >= subject.yRange[0] && yCoords <= subject.yRange[1]
                             );
 
-                            let classroom = lineText.split(hoursRegex).filter(part => part !== '')[0].trim();
+                            let classroom = lineText?.split(hoursRegex)?.filter(part => part !== '')[0]?.trim();
                             if (classroom == "D-") {
                                 classroom += "SSOFT";
                             }

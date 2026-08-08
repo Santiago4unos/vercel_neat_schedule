@@ -4,6 +4,7 @@
   "scripts": {
     "start": "nodemon js/index.js"
   },
+  "type": "module",
   "dependencies": {
     "express": "^4.18.2",
     "express-fileupload": "^1.4.0",
