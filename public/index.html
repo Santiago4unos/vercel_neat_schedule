@@ -397,8 +397,9 @@
                             );
 
                             let classroom = lineText?.split(hoursRegex)?.filter(part => part !== '')[0]?.trim();
-                            if (classroom == "D-") {
-                                classroom += "SSOFT";
+
+                            if (typeof classroom === "undefined") {
+                                classroom = "";
                             }
                             
                             if (currentDay == "") {
